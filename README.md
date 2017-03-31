@@ -34,6 +34,9 @@ Stage 2: __RStudio__
     - Type: `x = c('Analytics', 'Without', 'Borders')`
     - Type: `x`
     - Type: `x[1]`
+1. Click on `New Project` in the upper right hand corner
+    - Select `Existing Directory` 
+    - Select `Browse` and find the directory where you place the tutorial files
 1. Find the _Files_ pane:
     - Navigate, using the `...` button, to the directory where you stored the tutorial files
     - Now select `Set As Working Directory` from the `More` mini-menu
