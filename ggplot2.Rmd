@@ -1,0 +1,509 @@
+---
+title: "Data Visualization in R with ggplot2"
+author: "Dr. David Oury"
+date: "March 31, 2017"
+output: 
+  html_document:
+    toc: yes
+fig_height: 4
+---
+
+The `ggplot2` library contains functions to manipulate and 
+display graphs.
+These functions are organized by the number and types of 
+variables used. 
+See http://docs.ggplot2.org/current/index.html 
+for details.
+
+## Libraries used
+
+The `ggplot2` library contains most of the graphics commands that we will use.
+```{r}
+library(ggplot2)
+```
+
+The `magrittr` library is loaded for the piping operator `%>%`.
+```{r}
+library(magrittr)
+```
+
+The `dplyr` library is loaded for data frame manipulation and
+summary commands. 
+```{r, message=FALSE}
+library(dplyr)
+```
+
+# Datasets used
+
+The `diamonds` data frame is loaded with the `ggplot2` library. 
+```{r}
+str(diamonds)
+```
+See `help(diamonds)` for more information on the dataset.  
+
+From the documentation:
+
+- price - price in US dollars (\$326--\$18,823)
+- carat - weight of the diamond (0.2--5.01)
+- cut - quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+- colour - diamond colour, from J (worst) to D (best)
+- clarity - a measurement of how clear the diamond is (I1 (worst), SI1, SI2, VS1, VS2, VVS1, VVS2, IF (best))
+- x - length in mm (0--10.74)
+- y - width in mm (0--58.9)
+- z - depth in mm (0--31.8)
+- depth - total depth percentage $= z / mean(x, y) = 2 * z / (x + y) (43--79)$
+- table - width of top of diamond relative to widest point (43--95)
+
+
+The `mtcars` data frame is always loaded in R. 
+```{r}
+str(mtcars)
+```
+See `help(mtcars)` for more information on the data set.
+
+From the [documentation](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html):
+
+- mpg	- Miles/(US) gallon
+- cyl	- Number of cylinders
+- disp	- Displacement (cu.in.)
+- hp	- Gross horsepower
+- drat	- Rear axle ratio
+- wt	- Weight (1000 lbs)
+- sec	- 1/4 mile time
+- vs	- V/S
+- am	- Transmission (0 = automatic, 1 = manual)
+- gear	- Number of forward gears
+- carb	- Number of carburetors
+
+
+Several variables from the `mtcars` data frame are changed into factors. 
+
+The `am` variable is changed into a factor and its _levels_ are specified.
+```{r}
+mtcars$amF = factor(mtcars$am, 
+                    levels=c(0,1),
+                    labels=c("Auto","Man")) 
+```
+
+Change variable `cyl` to a factor variable.
+```{r}
+mtcars$cylF = factor(mtcars$cyl, 
+                     levels=c(4,6,8),
+                     labels=c("4cyl","6cyl","8cyl")) 
+```
+
+Change variable `gear` to a factor variable.
+```{r}
+mtcars$gearF = factor(mtcars$gear,
+                      levels=c(3,4,5),
+                      labels=c("3gears","4gears","5gears")) 
+```   
+
+We use the `make.ntiles` function to create a factor variable `mpgF` from the `mpg` variable.
+```{r}
+make.ntiles = function (inputvar, n) { 
+  inputvar %>%
+    quantile(., 
+             (1/n) * 1:(n-1),
+             na.rm=TRUE
+    ) %>%
+    c(-Inf, ., Inf) %>%
+    cut(inputvar, 
+        breaks=., 
+        paste("Q", 1:n, sep="")
+    ) 
+}
+```
+The `mpgF` contains two levels. The first indicates that the corresponding `mpg` value is less than or equal to the median value for `mpg`. The second is over the median. 
+```{r}
+mtcars$mpgF = make.ntiles(mtcars$mpg, 2)
+```   
+
+# Colorblind friendly palettes
+
+More information and the following palettes can be found at [Colors (ggplot2)](http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette).
+
+The palette with grey:
+```{r}
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+The palette with black:
+```{r}
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+The `cbPalette` palette is used in the graphics commands below. 
+
+# One (1) factor variable --- bar plot
+
+Typically a bar plot is created from a single factor variable.
+
+```{r}
+mtcars %>%
+  ggplot  (aes(x   =cylF)) +
+  geom_bar(aes(fill=cylF)) +   
+  scale_fill_manual(values=cbPalette) 
+```
+
+# Two (2) factor variables --- stacked bar plot
+
+A cross table of frequency counts for the `cyl` and `am` 
+variables is produced by the `xtabs` function.
+This provides the raw data that is displayed with the
+plots below. 
+
+```{r}
+mtcars %>%
+  xtabs(formula=~cylF+amF)
+```
+
+Two different stacked bar plots can be produced for this pair of variables.
+They are both displayed below. 
+```{r}
+mtcars %>%
+  ggplot(aes(x=cylF)) +
+  geom_bar(aes(fill=amF)) +
+  scale_fill_manual(values=cbPalette) 
+```
+
+Explain the differences between the two bar plots (above and below.)
+```{r}
+mtcars %>%
+  ggplot(aes(x=amF)) +
+  geom_bar(aes(fill=cylF)) +
+  scale_fill_manual(values=cbPalette) 
+```
+
+A _grouped_ bar plot can be created by using the `position='dodge'` 
+Again, two different plots can be produced. 
+```{r}
+mtcars %>%
+  ggplot(aes(x=cylF)) + 
+  geom_bar(aes(fill=amF), 
+           position='dodge') +
+  scale_fill_manual(values=cbPalette) 
+```
+
+```{r}
+mtcars %>%
+  ggplot(aes(x=amF)) + 
+  geom_bar(aes(fill=cylF), 
+           position='dodge') +
+  scale_fill_manual(values=cbPalette) 
+```
+
+# Several factor variables --- mosaic plots 
+
+A mosaic plot is used to show the _relative_ proportions 
+of records determined by values for two or more factor variables. 
+
+The `mosaicplot` command is contained in the `graphics` library, which is loaded automatically by R.
+
+The example below presents the `cyl` and `am` variables
+of the `mtcars` dataframe, using a mosaic plot.
+Again, there are two different mosaic plots for any pair of variables. 
+```{r, message=FALSE}
+mtcars %>%
+  mosaicplot(formula = ~ cylF + amF, 
+             data    = .,
+             color   = cbPalette,
+             main    = "Number of cylinders, then transmission type")
+```
+```{r, message=FALSE} 
+mtcars %>%
+  mosaicplot(formula = ~ amF + cylF, 
+             data    = .,
+             color   = cbPalette,
+             main    = "Transmission type, then number of cylinders")
+```
+
+Three factor variables can be specified to drill down further
+into the dataset.
+
+There are six different mosaic plots for three factor variables. 
+Here are two.
+
+```{r, message=FALSE, fig.height=5}
+mtcars %>%
+  mosaicplot(formula = ~ amF + cylF + mpgF, 
+             data    = .,
+             color   = cbPalette,
+             main    = "Transmission type, then number of cylinders, then MPG (2 levels)")
+```
+Here is another.
+
+```{r, message=FALSE, fig.height=5}
+mtcars %>%
+  mosaicplot(formula = ~ mpgF + cylF + amF, 
+             data    = .,
+             color   = cbPalette,
+             main    = "MPG (2 levels), then number of cylinders, then transmission type")
+```
+
+A discussion of mosaic plots can be found in 
+[Are Mosaic Plots Worthwhile?](http://www.perceptualedge.com/articles/visual_business_intelligence/are_mosaic_plots_worthwhile.pdf)
+by Stephen Few published in 
+_Visual Business Intelligence Newsletter_ (2014).
+
+# One (1) numeric variable --- histogram
+
+The histogram is a common plot to use in displaying the distribution 
+of a single numeric variable. 
+
+Setting the `color` parameter outlines the bars.
+
+The `guides(color=FALSE)` helper function removes a superfluous 
+legend that would otherwise be displayed by the plot.
+```{r, message=FALSE}
+mtcars %>%
+  ggplot(aes(x=mpg)) + 
+  geom_histogram(binwidth=5,
+                 color=cbPalette[1],
+                 fill =cbPalette[2])
+```
+
+# One (1) numeric variable and one (1) factor variable
+
+## Box plots
+
+The center line of a box plot indicates the median. 
+The top and bottom lines of the box indicate the 75th and 25th percentiles. 
+The lines extend $1.5$ times the interquartile range (IQR). 
+Everything else is an outlier and indicated by a dot. 
+```{r}
+diamonds %>%
+  ggplot(aes(x=cut,
+             y=price)) + 
+  geom_boxplot(aes(fill=cut)) + 
+  scale_fill_manual(values=cbPalette) 
+```
+
+## Stacked histogram
+
+The bars of the stacked histogram can be _filled_ based on a 
+factor variable. 
+
+```{r, message=FALSE}
+mtcars %>%
+  ggplot(aes(x=mpg)) +
+  geom_histogram(binwidth=5,
+                 aes(color=cbPalette[4], 
+                     fill =cylF)) + 
+  scale_fill_manual(values=cbPalette[1:3]) +
+  guides(color=FALSE)
+```
+
+## Violin plot
+
+For a detailed description of _violin plots_ see:
+- http://docs.ggplot2.org/current/geom_violin.html
+
+By default all violins have the same area.
+```{r}
+diamonds %>%
+  ggplot(aes(x=cut,
+             y=price)) + 
+  geom_violin(aes(fill=cut),
+              scale='area') +
+  scale_fill_manual(values=cbPalette) 
+```
+
+When using `scale='count'` the violin area is proportional to the count. 
+```{r}
+diamonds %>%
+  ggplot     (aes(x=cut, y=price)) + 
+  geom_violin(aes(fill=cut),
+              scale='count') +
+  scale_fill_manual(values=cbPalette) 
+```
+
+# One (1) numeric variable and two (2) factor variables
+
+```{r}
+colors <- colorRampPalette(c("blue", "green", "yellow", "red"))(42)
+mtcars %>%
+  group_by (cyl, am) %>%
+  summarize(avg.mpg=mean(mpg)) %>%
+  ggplot   (aes(x=cyl, y=am)) + 
+  geom_tile(aes(fill=avg.mpg),colour="white") + 
+  scale_fill_gradient(low=cbPalette[1], 
+                      high=cbPalette[2]) 
+```
+
+# Two (2) numeric variables
+
+## Scatter plot
+
+The first example is a basic scatter plot with blue points of size 2.
+```{r}
+ggplot(data=mtcars) + 
+  aes(x=wt, y=mpg) + 
+  geom_point(size=2,
+             color='blue')
+```
+
+This example has transparent points so the viewer can tell 
+if the points overlap. 
+This helps when plotting many points. 
+```{r}
+ggplot(data=diamonds) + 
+  aes(x=carat,
+      y=price) + 
+  geom_point(size=1,
+             alpha=0.2)
+```
+
+This example provides two dimensional binning with rectangular tiles. 
+The lighter regions contain more data points. 
+The `xlim` and `ylim` functions restrict the overall range of,
+in this case, the `carat` and `price` variables. 
+```{r}
+diamonds %>%
+  ggplot(aes(x=carat, y=price)) + 
+  geom_bin2d() +
+  xlim(0.125, 1.0) + 
+  ylim(0, 5000) +
+  scale_fill_gradient(low=cbPalette[1], 
+                      high=cbPalette[2]) 
+```
+
+The bin width can be set with the `binwidth` parameter.
+In this case the tiles are 1 unit by 1 unit.
+```{r}
+diamonds %>%
+  ggplot(aes(x=x, y=y)) + 
+  geom_bin2d(binwidth=c(1, 1)) +
+  xlim(4,10) + 
+  ylim(4,10) +
+  scale_fill_gradient(low=cbPalette[1], 
+                      high=cbPalette[2]) 
+```
+
+## Interpolate lines between data points
+
+The `geom_line` function of the `ggplot2` library draws lines between successive data points which are ordered by the `x` value.
+
+```{r}
+economics %>%
+  ggplot(aes(x=date, y=unemploy)) + 
+  geom_line(aes(color='red'))
+```
+Information on the `economics` data set can be found at http://docs.ggplot2.org/current/economics.html.
+
+In this example a _smooth_ line is drawn through the data points by adding the `stat_smooth` function to the previous command. 
+```{r}
+economics %>%
+  ggplot(aes(x=date, y=unemploy)) + 
+  geom_line(aes(color='red')) + 
+  stat_smooth()
+```
+
+In this example a straight line is drawn through the data points.
+```{r}
+economics %>%
+  ggplot(aes(x=date, y=unemploy)) + 
+  geom_line(aes(color='red')) + 
+  stat_smooth(method='lm') 
+```
+
+# Two (2) numeric variables and one (1) categorical variable
+
+The values of the categorical variable can determine the color of points. 
+```{r}
+mtcars %>%
+  ggplot(aes(x=hp, y=mpg)) +
+  geom_point(aes(color=cylF, size=3)) + 
+  guides(size=FALSE)
+```
+
+Any ordered variable, numeric or factor, 
+can determine the size of points. 
+```{r}
+mtcars %>%
+  ggplot(aes(x=hp, y=mpg)) +
+  geom_point(aes(color='red',size=cylF))
+```
+
+# Three (3) numeric variables
+
+In this graph, tiles are created for ranges of the 
+`carat` and `depth` variables. 
+Each tile is colored based on the average value of
+the `price` variable for all rows with values in the ranges for the tile.
+```{r}
+diamonds %>%
+  ggplot(aes(x=carat, 
+             y=depth, 
+             z=price)) +
+  stat_summary2d(fun=mean) +
+  scale_fill_gradient(low="white", 
+                      high="red") 
+```
+Above the mean value of `price` is calculated for all rows corresponding to a tile, which is then colored based on the mean value. 
+
+# Facets --- plots for each value of a categorical variable
+
+Facet graphs produce multiple versions of a graph, given one or more categorical variables.
+One graph is produced for each set of unique values of the categorical variables.
+
+This example produces one histogram of the `price` variable
+for each value of the `cut` variable.
+```{r message=FALSE}
+diamonds %>%
+  ggplot(aes(x   =price,
+             fill=cut)) + 
+  geom_bar() +
+  facet_grid(facets  =cut ~ ., 
+             labeller=label_both,
+             margins =TRUE) 
+```
+
+This example produces one bar plot of the `cut` variable
+for each value of the `color` variable.
+```{r, message=FALSE}
+diamonds %>%
+  ggplot(aes(x=cut,
+             fill=cut)) + 
+  geom_bar() +
+  facet_grid(facets=color ~ ., 
+             labeller=label_both) 
+```
+
+This example produces one histogram for the `mpg` variable
+for each pair of values of the `cyl` and `am` variables.
+```{r, message=FALSE}
+mtcars$cyl=factor(mtcars$cyl)
+mtcars$am =factor(mtcars$am)
+mtcars %>%
+  ggplot(aes(x=mpg,
+             fill=cyl)) + 
+  geom_bar() + 
+  facet_grid(facets=cyl + am ~ ., 
+             labeller=label_both) 
+```
+
+# The components of ggplot2 (from the documentation)
+
+  + Layer: The most important concept of ggplot2 is that graphics are built of different layers. This includes anything from the data used, the coordinate system, the axis labels, the plot's title etc. This layered grammar is perhaps the most powerful feature of ggplot2. It allows us to build complex graphics by adding more and more layers to the basic graphics while each layer is simple enough to construct. Layers can contain one or more components such as data and aesthetic mapping, geometries, statistics, scaling etc. We will talk about some most common components next.
+  + Aesthetics: They are graphic elements mapped to data defined by aes(). Some of the common aesthetics we usually define are: x-y positions, color, size, shape, linetype etc. Beginners are usually easily confused between aesthetics and geometries. An easy way to distinguish is that you are always trying to assign (map) data to some graphic elements in aesthetics, while in geometries you don't feed in any information on the data. It will become clear with some examples later
+  + Geometries: These are the actual graphic elements used to plot, like points / lines / bars etc. These functions usually start with geom_ and their names are usually self-explanatory. You can also specify color and other graphic elements in these functions, but it will be a single value that's applied to the entire data. Here is a simple way to see what geometries functions are available:
+  + Statistics: These provide a simple and powerful way to summarize your data and present calculated statistics on the plot, like add a regression line, a smoothed curve, calculate density curve etc. For a full list, see below. You can see some of the functions look very similar to some geom functions. Indeed these two categories are not mutually exclusive. Some geom functions implemented statistical calculation and stat functions also come with default geometries.
+  + Scale: Another powerful feature to alter the default scale to x-y axes, e.g. do a log transformation, instead of the traditional 2-step approach of transforming the data first and then plot it. You can also do more advanced customization to features like color, fill, etc. with these functions. Functions available are
+  + Faceting: This is very similar to the use of | in lattice to create separate panels according to some factor. There are two functions: facet_wrap for separating on one factor, and facet_grid for using two factors. We will cover some examples later.
+
+# Sources
+
++ http://is-r.tumblr.com/post/36204333530/representing-density-in-two-dimensions
++ http://www.ugrad.stat.ubc.ca/~stat540/seminars/seminar03_graphics-ggplot2.html#density-plots
++ https://chemicalstatistician.wordpress.com/2013/06/09/exploratory-data-analysis-kernel-density-estimation-in-r-on-ozone-pollution-data-in-new-york-and-ozonopolis/
++ http://docs.ggplot2.org/current/geom_bin2d.html
++ http://docs.ggplot2.org/current/stat_bin2d.html
++ http://www.ugrad.stat.ubc.ca/~stat540/seminars/seminar03_graphics-ggplot2.html#heatmap
++ http://docs.ggplot2.org/current/geom_hex.html
++ http://docs.ggplot2.org/current/stat_binhex.html
++ http://docs.ggplot2.org/current/geom_bar.html
++ http://www.ugrad.stat.ubc.ca/~stat540/seminars/seminar03_graphics-ggplot2.html
++ http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/
++ http://docs.ggplot2.org/current/economics.html
++ http://ggplot2.org/resources/2007-vanderbilt.pdf

@@ -1,0 +1,321 @@
+---
+title: "Introduction to the dplyr library"
+author: "Dr. David Oury"
+date: "March 31, 2017"
+output:
+  html_document:
+    toc: yes
+fontsize: 12pt
+---
+
+# Introduction 
+
+Hadley Wickham, the author of `dplyr`, has provided a package which
+contains the most common data manipulation functions
+for working on data frames.
+Briefly, these manipulations are ordering rows, selecting rows, 
+selecting variables, modifying variables and summarizing variables.
+
+The functions of the `dplyr` library not only manipulate data frames, 
+but manipulate data tables (see library `data.table`) and 
+databases, in particular some versions of SQL. 
+
+Please experiment with these commands in an __R__ interpreter 
+as you read about them. 
+To begin, load the `dplyr` library. 
+```{r, message=FALSE}
+library(dplyr)
+```
+
+We demonstrate the main functions of the library using the `flights`
+dataset of the `nycflights` library. 
+```{r, message=FALSE}
+library(nycflights13)
+```
+
+The structure of the dataset is displayed for reference. 
+```{r}
+str(flights)
+```
+Notice that the dataframe is of type `tbl_df`. 
+
+The following sections correspond to each of the five data manipulation tasks: 
+ordering rows, selecting rows, 
+selecting variables, modifying variables and summarizing variables.
+
+First though we describe the `tbl_df` function, which wraps a (local) dataframe
+so that printing the dataframe never results in wrapped lines or thousands of 
+printed rows. 
+Recall that the `flights` dataframe is of type `tbl_df`. 
+
+```{r}
+class(flights)
+```
+
+This print statement omits some columns and only
+displays ten (10) rows of the `flights` dataframe.
+By default, when a dataframe of type `tbl_df` is printed 
+only ten (10) rows are displayed and columns 
+are omitted so that the the rows do not wrap. 
+
+```{r}
+print(flights)
+```
+
+If you want to print more rows use the `n` parameter to the `print` function. 
+
+```{r}
+print(flights, n=15)
+```
+
+The following `option` command can be used to restrict all printing: 
+
+```{r}
+options(dplyr.print_min=5)
+flights
+```
+
+To display all columns use this `option` command:
+
+```{r}
+options(dplyr.width=Inf)
+flights
+```
+
+Notice that the rows are wrapped and that only five (5) rows are printed. 
+The value `Inf` can be replaced with any positive integer.
+To reset this option so that rows are not wrapped use
+
+```{r}
+options(dplyr.width=getOption("width"))
+```
+
+
+# Ordering rows with the `arrange` function
+
+The `arrange` function orders the rows of a data frame by the variables 
+specified by the second and later arguments. 
+For example, the following command returns the flight data frame sorted by 
+the `month` variable. 
+```{r}
+arrange(flights, month)
+```
+
+By default, rows are sorted in _increasing_ order.
+Use the `desc` function to sort in _decreasing_ order. 
+```{r}
+arrange(flights, desc(month))
+```
+
+Additional variables to sort by can be specified in the third and later arguments.
+The second argument specifies the primary sorting variable. 
+The third argument is used in case of ties, 
+and so on for additional arguments. 
+```{r}
+arrange(flights, month, dep_delay)
+```
+
+
+# Selecting rows
+
+Each of the functions 
+`sample_n`, `sample_frac`, `slice` and `filter` 
+retrieve a subset of the rows of a data frame. 
+
+## Function `sample_n`
+
+The `sample_n` function returns a random selection of records 
+as determined by the `size` parameter.
+The command below returns four (4) records.
+```{r}
+sample_n(flights, size=4)
+```
+Sampling can be performed with or without replacement,
+and a weighting vector can be specified. 
+See `help(sample_n)` for more details. 
+
+## Function `sample_frac`
+
+The `sample_frac` function also returns a random selection of records.
+It returns a proportion of (the rows of) the data frame as determined by 
+the `size` parameter.
+The `flights` data frame contains `r nrow(flights)` records.
+Three (3) is the nearest integer to 
+`r nrow(flights)`/100000 and 
+is the number of records returned by the command below.
+```{r}
+sample_frac(flights,size=1/100000)
+```
+
+## Function `slice`
+
+The `slice` command retrieves specific rows of the input data frame
+as indicated by the vector given in the second argument. 
+For example, the following command returns the first four rows
+of the data frame.
+```{r}
+slice(flights, 1:4)
+```
+
+The first and fourth rows of the data frames are returned from the command
+```{r}
+slice(flights, c(1,4))
+```
+
+The last row of the data frame is returned with the command
+```{r}
+slice(flights, n())
+```
+
+The last four (4) rows of the data frame are returned with the command
+```{r}
+slice(flights, (n()-3):n())
+```
+
+## Function `filter`
+
+The `filter` command selects a subset of the rows of a data frame 
+based on values of variables of the data frame. 
+For example, all records where `month==12` _and_ `day==25` (flights on Dec 25) 
+are requested with the following command. 
+```{r}
+flights.12.25 = filter(flights, month==12, day==25)
+flights.12.25 
+```
+All conditions specified in the second and later arguments must be satisfied. 
+
+To specify an _or_ condition use the pipe "|" symbol. 
+The following command retrieves all rows where `month` is 
+equal to either `11` _or_ `12`. 
+```{r}
+filter(flights, month==11 | month==12)
+```
+
+## Function `distinct`
+
+__This command should be used with caution!__
+
+In many cases I've seen it misused, which produces errors. 
+If you do choose to use the `distinct` function please check and verify your
+output to confirm that it is what you expect. 
+
+The `distinct` function takes as input a data frame in the first argument, 
+and a list of variables in the second and, possibly, later arguments. 
+The function returns a data frame where the values of the listed variables
+are unique between records. For example, the following command
+returns `r nrow(distinct(flights,month))` rows, one for every 
+unique value of  variable `month`.
+```{r}
+distinct(flights, month)
+```
+
+The next command
+returns `r nrow(distinct(flights,month,day))` rows, one for every 
+unique pair of values of variables `month` and `day`.
+```{r}
+flights.month.day = distinct(flights, month, day)
+nrow(flights.month.day)
+```
+
+The record returned for each unique set of values of the input variables
+is the _first_ record found with these values.
+Unless the data frame is sorted it will be unclear which record is chosen. 
+A more useful and general approach is to summarize the data, 
+as described in Section _Summarizing Variables_ below. 
+
+# Selecting and renaming variables 
+
+## Function `select`
+
+The `select` command returns a data frame with only the specified 
+variables from the input data frame. 
+
+```{r}
+flights.dep = select(flights, month, day, starts_with('dep'))
+str(flights.dep)
+```
+Notice the use of the `starts_with` function. 
+There are additional options for specifying variables. 
+See `help(select)` for details.
+
+## Function `rename`
+
+The `rename` function renames variables and returns all variables 
+of the input data frame. 
+```{r}
+flights.departure = rename(flights.dep, 
+                           departure.delay = dep_delay, 
+                           departure.time  = dep_time
+                           )
+str(flights.departure)
+```
+
+# Modifying variables with the `mutate` and `transmute` functions
+
+The `mutate` function alters variables of the input data frame
+and returns the modified data frame. It can also create new variables. 
+Note that the input data frame is not changed. 
+For example, the following command changes the units of `dep_delay` to hours.
+```{r}
+mutate(flights.dep, dep_delay=dep_delay/60)
+```
+
+See also the `transmute` function which drops all variables which 
+where not explicitly modified. 
+
+# Summarizing variables with the `group_by` and `summarize` functions
+
+Recall the descriptive statistics commands which return a single value 
+given input of a numeric vector: 
+`length`,  `sum`,  `mean`,  `median`, 
+`sd` (standard deviation),  `var` (variance), 
+`min` and `max`.
+The `summarize` command in conjunction with these functions 
+is used to summarize variables of a data frame. 
+For example, the following command displays the minimum, maximum, 
+mean and median values of  variable `dep_delay`.
+```{r}
+summarize(flights, 
+          min=min(dep_delay,na.rm=TRUE),
+          max=max(dep_delay,na.rm=TRUE),
+          mean=mean(dep_delay,na.rm=TRUE),
+          median=median(dep_delay,na.rm=TRUE))
+```
+Notice the parameter `na.rm=TRUE` which indicates that `NA` values 
+should be removed prior to running these functions. 
+
+Summarization of variables is often performed, not for the entire 
+dataset, but for groups of rows as determined by a categorical variable. 
+For example, with the command below we summarize the flights dataset for each group of rows as determined by the `month` variable. 
+
+```{r}
+summarize(group_by(flights,month), 
+          min=min(dep_delay,na.rm=TRUE),
+          max=max(dep_delay,na.rm=TRUE),
+          mean=mean(dep_delay,na.rm=TRUE),
+          median=median(dep_delay,na.rm=TRUE))
+```
+
+Multiple variables can be used to group rows of the dataset. 
+For example, the following command produces summaries for each of 
+`r  nrow(summarize(group_by(flights, month, day), 
+          min=min(dep_delay,na.rm=TRUE),
+          max=max(dep_delay,na.rm=TRUE),
+          mean=mean(dep_delay,na.rm=TRUE),
+          median=median(dep_delay,na.rm=TRUE)))` 
+groups as determined by variables `month` and `day`.
+```{r}
+summarize(group_by(flights, month, day), 
+          min=min(dep_delay,na.rm=TRUE),
+          max=max(dep_delay,na.rm=TRUE),
+          mean=mean(dep_delay,na.rm=TRUE),
+          median=median(dep_delay,na.rm=TRUE))
+```
+
+# References
+
++ [dplyr: A Grammar of Data Manipulation](http://cran.r-project.org/web/packages/dplyr/index.html) (CRAN repository)
++ [Package dplyr](http://cran.r-project.org/web/packages/dplyr/dplyr.pdf)
+  (documentation)
++ [Introduction to dplyr](http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html) (tutorial)
++ [Github: hadley/dplyr](https://github.com/hadley/dplyr)

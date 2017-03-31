@@ -1,0 +1,37 @@
+---
+title: "Analytics Without Borders - First R File"
+author: "Arthur R. Markdown"
+date: "March 31, 2017"
+output: html_document
+---
+
+## Section 1 - Formatting Text
+
+This forum explores all ways of _analytics work_, be it from corporate institutions, academia, or government organizations. 
+The event will be a blend of learning opportunities including:
+
+- Keynote talks
+- Hands-on workshops in __R__, __Python__, and __Tableau__
+- Research presentations
+- Poster presentations
+
+Notice that there is a blank line before and after the paragraph and before and after the list items.
+
+## Section 2 - Code blocks
+
+Many datasets are available in R. 
+The first five rows of the `mtcars` dataset are:
+```{r mtcars-head}
+head(mtcars, 5)
+```
+
+Following is a summary of each of the variables in the `mtcars` dataset:
+```{r mtcars-summary, echo=FALSE}
+summary(mtcars)
+```
+Notice that in this second _code block_ that output was displayed, but that the command was not. 
+This behavior is caused by the `echo=FALSE` parameter. 
+
+## Conclusion
+
+So that's cool. 
